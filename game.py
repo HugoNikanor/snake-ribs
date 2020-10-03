@@ -4,54 +4,109 @@ from dataclasses import dataclass
 # Asset dictionary for holding all your assets.
 assets = {}
 
+# https://www.gameart2d.com/freebies.html
 
 def clamp(val, low, high):
     return min(max(val, low), high)
 
+class DinoSprite(pg.sprite.Sprite):
+    def __init__(self):
+        super(DinoSprite, self).__init__()
+        self.images = []
 
-@dataclass
-class Player:
-    centerx = 0
-    centery = 0
-    width = 40
-    height = 40
+        self.sprites = {
+            'dead': [pg.image.load(f'png/Dead ({i}).png') for i in range(1, 8 + 1)],
+            'idle': [pg.image.load(f'png/Idle ({i}).png') for i in range(1, 10 + 1)],
+            'jump': [pg.image.load(f'png/Jump ({i}).png') for i in range(1, 12 + 1)],
+            'run': [pg.image.load(f'png/Run ({i}).png') for i in range(1, 8 + 1)],
+            'walk': [pg.image.load(f'png/Walk ({i}).png') for i in range(1, 10 + 1)],
+        }
 
-    velocity = (0, 0)
+        self.state = 'idle'
+        self.next_state = False
 
-    walk_acc = 1000.0
-    max_walk_speed = 100
-    slow_down = 0.01
+        self.index = 0
+        self.image = self.sprites[self.state][self.index]
+        self.rect = self.image.get_rect()
+
+        # self.centerx = self.rect.w / 2
+        # self.centery = self.rect.h / 2
+        # self.width = self.rect.w
+        # self.height = self.rect.h
+        self.width = 40
+        self.height = 40
+
+        self.velocity = (0, 0)
+
+        self.walk_acc = 1000.0
+        self.max_walk_speed = 100
+        self.slow_down = 0.01
+
+        self.facing_left = False
+
+        self.counter = 0
+
+    def update(self, dt):
+        self.counter += dt
+        if self.counter > 0.04:
+            self.index = (self.index + 1) % (len(self.sprites[self.state]) - 1)
+            self.image = self.sprites[self.state][self.index]
+            # if self.index == 0 and self.next_state and self.next_state != self.state:
+            #     self.state = self.next_state
+            #     self.next_state = False
+            self.counter = 0
 
 
-def update_player(player, delta):
-    if key_down("d") or key_down(pg.K_RIGHT):
-        player.velocity = (player.velocity[0] + player.walk_acc * delta,
-                           player.velocity[1])
-    elif key_down("a") or key_down(pg.K_LEFT):
-        player.velocity = (player.velocity[0] - player.walk_acc * delta,
-                           player.velocity[1])
-    else:
-        # Yes, this is supposed to be an exponent.
-        player.velocity = (player.velocity[0] * (player.slow_down ** delta),
-                           player.velocity[1])
+        # self.state = 'idle'
 
-    # Gravity
-    player.velocity = (player.velocity[0], player.velocity[1] + 100 * delta)
-
-    max_speed = player.max_walk_speed
-    clamped_horizontal_speed = clamp(player.velocity[0], -max_speed, max_speed)
-    player.velocity = (clamped_horizontal_speed, player.velocity[1])
-
-    player.centerx += player.velocity[0] * delta
-    player.centery += player.velocity[1] * delta
+        if key_down("d") or key_down(pg.K_RIGHT):
+            self.velocity = (self.velocity[0] + self.walk_acc * dt,
+                               self.velocity[1])
+            self.facing_left = False
+            self.state = 'walk'
+        elif key_down("a") or key_down(pg.K_LEFT):
+            self.velocity = (self.velocity[0] - self.walk_acc * dt,
+                               self.velocity[1])
+            self.facing_left = True
+            self.state = 'walk'
+        else:
+            # self.next_state = 'idle'
+            # Yes, this is supposed to be an exponent.
+            self.velocity = (self.velocity[0] * (self.slow_down ** dt),
+                               self.velocity[1])
 
 
-def draw_player(player):
-    window = pg.display.get_surface()
-    pg.draw.rect(window, pg.Color(100, 30, 30), (player.centerx - player.width / 2,
-                                                 player.centery - player.height / 2,
-                                                 player.width,
-                                                 player.height))
+        # Gravity
+        self.velocity = (self.velocity[0], self.velocity[1] + 100 * dt)
+
+        max_speed = self.max_walk_speed
+        clamped_horizontal_speed = clamp(self.velocity[0], -max_speed, max_speed)
+        self.velocity = (clamped_horizontal_speed, self.velocity[1])
+
+        if abs(self.velocity[0]) < 10:
+            self.state = 'idle'
+
+        if key_down('r'):
+            self.velocity = (self.velocity[0] * 2, self.velocity[1])
+            self.state = 'run'
+
+        self.centerx += self.velocity[0] * dt
+        self.centery += self.velocity[1] * dt
+
+    def draw(self):
+        if self.facing_left:
+            img = pg.transform.flip(self.image, True, False)
+        else:
+            img = self.image
+        draw_transformed(img, (self.centerx, self.centery), scale=(0.1,0.1))
+        # draw_transformed(img, (100, 100), scale=(0.2,0.2))
+
+
+
+
+
+
+
 
 levels = [
 """
@@ -123,33 +178,38 @@ def update():
     """The program starts here"""
     global current_level
     # Initialization (only runs on start/restart)
-    player = Player()
+    # player = Player()
+    dino = DinoSprite()
+
+    group = pg.sprite.Group(dino)
 
     walls, goals, start = parse_level(levels[current_level])
-    player.centerx = start[0]
-    player.centery = start[1]
+    dino.centerx = start[0]
+    dino.centery = start[1]
 
     # Main update loop
     while True:
-        update_player(player, delta())
-        draw_player(player)
+        # update_player(dino, delta())
+        group.update(delta())
+        # group.draw(pg.display.get_surface())
+        dino.draw()
 
         for wall in walls:
             window = pg.display.get_surface()
             pg.draw.rect(window, pg.Color(100, 100, 100), wall)
 
-            player_vel, wall_vel, overlap = solve_rect_overlap(player,
+            player_vel, wall_vel, overlap = solve_rect_overlap(dino,
                                                                wall,
-                                                               player.velocity,
+                                                               dino.velocity,
                                                                mass_b=0,
                                                                bounce=0.1)
-            player.velocity = player_vel
+            dino.velocity = player_vel
 
         for goal in goals:
             window = pg.display.get_surface()
             pg.draw.rect(window, pg.Color(20, 100, 20), goal)
 
-            normal, depth = overlap_data(player, goal)
+            normal, depth = overlap_data(dino, goal)
             if depth > 0:
                 current_level = (current_level + 1) % len(levels)
                 restart()
