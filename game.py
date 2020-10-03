@@ -1,6 +1,7 @@
 from ribs import *
 from dataclasses import dataclass
-
+import random
+import time
 # Asset dictionary for holding all your assets.
 assets = {}
 
@@ -20,7 +21,7 @@ class Player:
 
     walk_acc = 1000.0
     max_walk_speed = 100
-    slow_down = 0.01
+    slow_down = 0.00001
 
 
 def update_player(player, delta):
@@ -30,20 +31,36 @@ def update_player(player, delta):
     elif key_down("a") or key_down(pg.K_LEFT):
         player.velocity = (player.velocity[0] - player.walk_acc * delta,
                            player.velocity[1])
+    elif key_down("s") or key_down(pg.K_DOWN):
+        player.velocity = (player.velocity[0] ,
+                           player.velocity[1]+ player.walk_acc * delta)
+    elif key_down("w") or key_down(pg.K_UP):
+        player.velocity = (player.velocity[0] ,
+                           player.velocity[1] - player.walk_acc * delta)
     else:
         # Yes, this is supposed to be an exponent.
-        player.velocity = (player.velocity[0] * (player.slow_down ** delta),
-                           player.velocity[1])
+        player.velocity = (player.velocity[0] * (player.slow_down ** (delta)),
+                           player.velocity[1]* (player.slow_down ** (delta)))
 
-    # Gravity
-    player.velocity = (player.velocity[0], player.velocity[1] + 100 * delta)
 
     max_speed = player.max_walk_speed
     clamped_horizontal_speed = clamp(player.velocity[0], -max_speed, max_speed)
     player.velocity = (clamped_horizontal_speed, player.velocity[1])
 
+    clamped_vertical_speed = clamp(player.velocity[1], -max_speed, max_speed)
+    player.velocity = (player.velocity[0], clamped_vertical_speed)
+
+
     player.centerx += player.velocity[0] * delta
     player.centery += player.velocity[1] * delta
+
+
+def random_food(goals):
+    GRID_SIZE = 10
+    random_x= random.randint(40, 400)
+    random_y= random.randint(40, 360)
+    r = pg.Rect(random_x, random_y, GRID_SIZE, GRID_SIZE)
+    goals.append(r)
 
 
 def draw_player(player):
@@ -55,28 +72,17 @@ def draw_player(player):
 
 levels = [
 """
-##########
-#        #
-#        #
-#        #
-# S    E #
-##########
-""",
-"""
-##########
-#        #
-# S      #
-####     #
-####   E #
-##########
-""",
-"""
-##########
-#      S #
-####     #
-##       #
-##E      #
-##########
+############
+#          #
+#          #
+#          #
+#    E     #
+#          #
+#          #
+#          #
+#          #
+# S        #
+############
 """,
 ]
 
@@ -91,6 +97,7 @@ def parse_level(level_string):
     level_lines = level_string.strip().split("\n")
     for tile_y, line in enumerate(level_lines):
         y = tile_y * GRID_SIZE
+
         for tile_x, c in enumerate(line):
             x = tile_x * GRID_SIZE
             r = pg.Rect(x, y, GRID_SIZE, GRID_SIZE)
@@ -103,7 +110,6 @@ def parse_level(level_string):
             elif c == "S":
                 # It's the start
                 start = (x, y)
-
     return walls, goals, start
 
 
@@ -130,6 +136,9 @@ def update():
     player.centery = start[1]
 
     # Main update loop
+    j = 0
+    start_time = time.time()
+    time_for_win = 1000
     while True:
         update_player(player, delta())
         draw_player(player)
@@ -142,22 +151,35 @@ def update():
                                                                wall,
                                                                player.velocity,
                                                                mass_b=0,
-                                                               bounce=0.1)
+                                                               bounce=0.01)
             player.velocity = player_vel
 
-        for goal in goals:
+        for i, goal in enumerate(goals):
             window = pg.display.get_surface()
             pg.draw.rect(window, pg.Color(20, 100, 20), goal)
 
             normal, depth = overlap_data(player, goal)
             if depth > 0:
-                current_level = (current_level + 1) % len(levels)
-                restart()
-
+                j +=1
+                del goals[i]
+                player.width += 2
+                player.height += 2
+                random_food(goals)
         draw_text(f"Level: {current_level + 1}", (0, 0))
-
+        if j >= 1 and (time.time()-start_time<time_for_win) :
+            yield
+            draw_text("Du vann", (220, 200))
+            yield
+            pg.time.delay(1000)
+            break
+        elif (time.time()-start_time>time_for_win):
+            draw_text("Du Förlora", (220, 200))
+            yield
+            pg.time.delay(1000)
+            break
         # Main loop ends here, put your code above this line
         yield
+
 
 
 # This has to be at the bottom, because of python reasons.
