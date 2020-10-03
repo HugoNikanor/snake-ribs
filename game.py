@@ -238,7 +238,7 @@ def update():
     # Main update loop
     j = 0
     start_time = time.time()
-    time_for_win = 1000
+    time_for_win = 30
     while True:
         # update_player(dino, delta())
         group.update(delta())
@@ -280,7 +280,8 @@ def update():
                 dino.height += 2
                 random_food(goals)
         draw_text(f"Level: {current_level + 1}", (0, 0))
-        if j >= 1 and (time.time()-start_time<time_for_win) :
+        draw_text(f"Time left: {start_time + time_for_win - time.time():.2f}", (0, 20))
+        if j >= 10 and (time.time()-start_time<time_for_win) :
             yield
             draw_text("Du vann", (220, 200))
             yield
