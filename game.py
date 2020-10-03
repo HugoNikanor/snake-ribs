@@ -198,8 +198,8 @@ def update():
 
     sp = spritesheet("tileset48.png")
     wall, wall_floor, floor = sp.images_at(
-            [(16 * 4, y, 16 * 4, 16 * 4)
-                for y in range(22 * 4, 22 * 4 * 3 + 1, 16 * 4)])
+            [(48, y, 16*3, 16*3)
+                for y in range(22*3, 22*3 + 16*3 * 3, 16*3)])
     
     tile_wall = Tile(wall)
     tile_wall_floor = Tile(wall_floor)
@@ -217,7 +217,6 @@ def update():
 
         window = pg.display.get_surface()
         for y, line in enumerate(levels[current_level].split('\n')):
-            print(line)
             for x, tile in enumerate(line):
                 if tile == '#':
                     img = tile_wall
