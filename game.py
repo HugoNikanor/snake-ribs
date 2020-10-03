@@ -2,10 +2,13 @@ from ribs import *
 from dataclasses import dataclass
 import random
 import time
+from spritesheet import spritesheet
+
 # Asset dictionary for holding all your assets.
 assets = {}
 
 # https://www.gameart2d.com/freebies.html
+# https://limezu.itch.io/moderninteriors
 
 def clamp(val, low, high):
     return min(max(val, low), high)
@@ -34,8 +37,8 @@ class DinoSprite(pg.sprite.Sprite):
         # self.centery = self.rect.h / 2
         # self.width = self.rect.w
         # self.height = self.rect.h
-        self.width = 40
-        self.height = 40
+        self.width = 48
+        self.height = 48
 
         self.velocity = (0, 0)
 
@@ -129,6 +132,20 @@ def random_food(goals):
     r = pg.Rect(random_x, random_y, GRID_SIZE, GRID_SIZE)
     goals.append(r)
 
+class Tile(pg.sprite.Sprite):
+    def __init__(self, img):
+        super(Tile, self).__init__()
+        self.image = img
+        self.width = 48
+        self.height = 48
+
+    def get_size(self):
+        return 48, 48
+
+
+
+
+
 
 levels = [
 """
@@ -148,7 +165,7 @@ levels = [
 
 
 def parse_level(level_string):
-    GRID_SIZE = 40
+    GRID_SIZE = 48
 
     walls = []
     goals = []
@@ -184,6 +201,7 @@ def init():
     assets["plong"] = pg.mixer.Sound("plong.wav")
 
 
+
 current_level = 0
 def update():
     """The program starts here"""
@@ -193,6 +211,15 @@ def update():
     dino = DinoSprite()
 
     group = pg.sprite.Group(dino)
+
+    sp = spritesheet("tileset48.png")
+    wall, wall_floor, floor = sp.images_at(
+            [(48, y, 16*3, 16*3)
+                for y in range(22*3, 22*3 + 16*3 * 3, 16*3)])
+    
+    tile_wall = Tile(wall)
+    tile_wall_floor = Tile(wall_floor)
+    tile_floor = Tile(floor)
 
     walls, goals, start = parse_level(levels[current_level])
     dino.centerx = start[0]
@@ -206,11 +233,23 @@ def update():
         # update_player(dino, delta())
         group.update(delta())
         # group.draw(pg.display.get_surface())
+
+        window = pg.display.get_surface()
+        for y, line in enumerate(levels[current_level].split('\n')):
+            for x, tile in enumerate(line):
+                if tile == '#':
+                    img = tile_wall
+                else:
+                    img = tile_floor
+                # draw_transformed(img.image, ((x * 48)/2, (y * 48)/2))
+                draw_transformed(img.image, (x * 48 - 48/2, y * 48 - 48/2))
+
         dino.draw()
 
         for wall in walls:
-            window = pg.display.get_surface()
-            pg.draw.rect(window, pg.Color(100, 100, 100), wall)
+            # window = pg.display.get_surface()
+            # pg.draw.rect(window, pg.Color(100, 100, 100), wall)
+            # draw_transformed(img, (self.centerx, self.centery), scale=(0.1,0.1))
 
             player_vel, wall_vel, overlap = solve_rect_overlap(dino,
                                                                wall,
