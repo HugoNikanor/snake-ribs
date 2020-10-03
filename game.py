@@ -1,6 +1,7 @@
 from ribs import *
 from dataclasses import dataclass
-
+import random
+import time
 # Asset dictionary for holding all your assets.
 assets = {}
 
@@ -38,9 +39,12 @@ class DinoSprite(pg.sprite.Sprite):
 
         self.velocity = (0, 0)
 
+        # self.walk_acc = 1000.0
+        # self.max_walk_speed = 100
+        # self.slow_down = 0.01
         self.walk_acc = 1000.0
         self.max_walk_speed = 100
-        self.slow_down = 0.01
+        self.slow_down = 0.00001
 
         self.facing_left = False
 
@@ -69,11 +73,19 @@ class DinoSprite(pg.sprite.Sprite):
                                self.velocity[1])
             self.facing_left = True
             self.state = 'walk'
+        elif key_down("s") or key_down(pg.K_DOWN):
+            self.velocity = (self.velocity[0] ,
+                               self.velocity[1]+ self.walk_acc * dt)
+            self.state = 'walk'
+        elif key_down("w") or key_down(pg.K_UP):
+            self.velocity = (self.velocity[0] ,
+                               self.velocity[1] - self.walk_acc * dt)
+            self.state = 'walk'
         else:
-            # self.next_state = 'idle'
             # Yes, this is supposed to be an exponent.
-            self.velocity = (self.velocity[0] * (self.slow_down ** dt),
-                               self.velocity[1])
+            self.velocity = (self.velocity[0] * (self.slow_down ** (dt)),
+                               self.velocity[1]* (self.slow_down ** (dt)))
+        ##
 
 
         # Gravity
@@ -83,15 +95,23 @@ class DinoSprite(pg.sprite.Sprite):
         clamped_horizontal_speed = clamp(self.velocity[0], -max_speed, max_speed)
         self.velocity = (clamped_horizontal_speed, self.velocity[1])
 
-        if abs(self.velocity[0]) < 10:
+        if abs(self.velocity[0]) + abs(self.velocity[1]) < 10:
             self.state = 'idle'
 
         if key_down('r'):
             self.velocity = (self.velocity[0] * 2, self.velocity[1])
             self.state = 'run'
 
+        # self.centerx += self.velocity[0] * dt
+        # self.centery += self.velocity[1] * dt
+
+        clamped_vertical_speed = clamp(self.velocity[1], -max_speed, max_speed)
+        self.velocity = (self.velocity[0], clamped_vertical_speed)
+
+
         self.centerx += self.velocity[0] * dt
         self.centery += self.velocity[1] * dt
+
 
     def draw(self):
         if self.facing_left:
@@ -102,36 +122,27 @@ class DinoSprite(pg.sprite.Sprite):
         # draw_transformed(img, (100, 100), scale=(0.2,0.2))
 
 
-
-
-
-
+def random_food(goals):
+    GRID_SIZE = 10
+    random_x= random.randint(40, 400)
+    random_y= random.randint(40, 360)
+    r = pg.Rect(random_x, random_y, GRID_SIZE, GRID_SIZE)
+    goals.append(r)
 
 
 levels = [
 """
-##########
-#        #
-#        #
-#        #
-# S    E #
-##########
-""",
-"""
-##########
-#        #
-# S      #
-####     #
-####   E #
-##########
-""",
-"""
-##########
-#      S #
-####     #
-##       #
-##E      #
-##########
+############
+#          #
+#          #
+#          #
+#    E     #
+#          #
+#          #
+#          #
+#          #
+# S        #
+############
 """,
 ]
 
@@ -146,6 +157,7 @@ def parse_level(level_string):
     level_lines = level_string.strip().split("\n")
     for tile_y, line in enumerate(level_lines):
         y = tile_y * GRID_SIZE
+
         for tile_x, c in enumerate(line):
             x = tile_x * GRID_SIZE
             r = pg.Rect(x, y, GRID_SIZE, GRID_SIZE)
@@ -158,7 +170,6 @@ def parse_level(level_string):
             elif c == "S":
                 # It's the start
                 start = (x, y)
-
     return walls, goals, start
 
 
@@ -188,6 +199,9 @@ def update():
     dino.centery = start[1]
 
     # Main update loop
+    j = 0
+    start_time = time.time()
+    time_for_win = 1000
     while True:
         # update_player(dino, delta())
         group.update(delta())
@@ -202,22 +216,35 @@ def update():
                                                                wall,
                                                                dino.velocity,
                                                                mass_b=0,
-                                                               bounce=0.1)
+                                                               bounce=0.01)
             dino.velocity = player_vel
 
-        for goal in goals:
+        for i, goal in enumerate(goals):
             window = pg.display.get_surface()
             pg.draw.rect(window, pg.Color(20, 100, 20), goal)
 
             normal, depth = overlap_data(dino, goal)
             if depth > 0:
-                current_level = (current_level + 1) % len(levels)
-                restart()
-
+                j +=1
+                del goals[i]
+                dino.width += 2
+                dino.height += 2
+                random_food(goals)
         draw_text(f"Level: {current_level + 1}", (0, 0))
-
+        if j >= 1 and (time.time()-start_time<time_for_win) :
+            yield
+            draw_text("Du vann", (220, 200))
+            yield
+            pg.time.delay(1000)
+            break
+        elif (time.time()-start_time>time_for_win):
+            draw_text("Du Förlora", (220, 200))
+            yield
+            pg.time.delay(1000)
+            break
         # Main loop ends here, put your code above this line
         yield
+
 
 
 # This has to be at the bottom, because of python reasons.
