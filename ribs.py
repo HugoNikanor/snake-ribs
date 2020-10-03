@@ -239,8 +239,8 @@ FRAME_CLOCK = pg.time.Clock()
 
 PYGAME_INITALIZED = False
 
-SCREEN_WIDTH = 500
-SCREEN_HEIGHT = 500
+SCREEN_WIDTH = 600
+SCREEN_HEIGHT = 600
 
 
 def set_screen_size(width, height):

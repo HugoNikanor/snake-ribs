@@ -104,24 +104,25 @@ class DinoSprite(pg.sprite.Sprite):
 
 
         # Gravity
-        self.velocity = (self.velocity[0], self.velocity[1] + 100 * dt)
+        # self.velocity = (self.velocity[0], self.velocity[1] + 100 * dt)
 
         max_speed = self.max_walk_speed
-        clamped_horizontal_speed = clamp(self.velocity[0], -max_speed, max_speed)
-        self.velocity = (clamped_horizontal_speed, self.velocity[1])
+
+        self.velocity = (
+                clamp(self.velocity[0], -max_speed, max_speed),
+                clamp(self.velocity[1], -max_speed, max_speed)
+                )
 
         if abs(self.velocity[0]) + abs(self.velocity[1]) < 10:
             self.state = 'idle'
 
         if key_down('r'):
-            self.velocity = (self.velocity[0] * 2, self.velocity[1])
+            self.velocity = (self.velocity[0] * 2, self.velocity[1] * 2)
             self.state = 'run'
 
         # self.centerx += self.velocity[0] * dt
         # self.centery += self.velocity[1] * dt
 
-        clamped_vertical_speed = clamp(self.velocity[1], -max_speed, max_speed)
-        self.velocity = (self.velocity[0], clamped_vertical_speed)
 
 
         self.centerx += self.velocity[0] * dt
@@ -129,6 +130,8 @@ class DinoSprite(pg.sprite.Sprite):
 
 
     def draw(self):
+        window = pg.display.get_surface()
+        # pg.draw.rect(window, pg.Color(100, 100, 100), (self.centerx - 48/2, self.centery - 48/2, 48, 48))
         if self.facing_left:
             img = pg.transform.flip(self.image, True, False)
         else:
@@ -239,6 +242,7 @@ def update():
 
     # Main update loop
     j = 0
+    food_target = 10
     start_time = time.time()
     time_for_win = 30
     while True:
@@ -267,7 +271,7 @@ def update():
                                                                wall,
                                                                dino.velocity,
                                                                mass_b=0,
-                                                               bounce=0.01)
+                                                               bounce=0.00)
             dino.velocity = player_vel
 
         for i, goal in enumerate(goals):
@@ -276,16 +280,17 @@ def update():
 
             normal, depth = overlap_data(dino, goal)
             if depth > 0:
-                j +=1
+                j += 1
                 del goals[i]
                 # dino.width += 2
                 # dino.height += 2
                 dino.scale *= 1.1
                 random_food(goals)
-        draw_text(f"Level: {current_level + 1}", (0, 0))
+        # draw_text(f"Level: {current_level + 1}", (0, 0))
+        draw_text(f'Food eaten: {j}/{food_target}', (0,0))
         draw_text(f"Time left: {start_time + time_for_win - time.time():.2f}", (0, 20))
-        if j >= 10 and (time.time()-start_time<time_for_win) :
-            yield
+        if j >= food_target and (time.time()-start_time<time_for_win) :
+            #yield
             draw_text("Du vann", (220, 200))
             yield
             pg.time.delay(1000)
