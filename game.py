@@ -66,25 +66,35 @@ class DinoSprite(pg.sprite.Sprite):
 
         # self.state = 'idle'
 
+        any_input = False
+
         if key_down("d") or key_down(pg.K_RIGHT):
             self.velocity = (self.velocity[0] + self.walk_acc * dt,
                                self.velocity[1])
             self.facing_left = False
             self.state = 'walk'
-        elif key_down("a") or key_down(pg.K_LEFT):
+            any_input = True
+
+        if key_down("a") or key_down(pg.K_LEFT):
             self.velocity = (self.velocity[0] - self.walk_acc * dt,
                                self.velocity[1])
             self.facing_left = True
             self.state = 'walk'
-        elif key_down("s") or key_down(pg.K_DOWN):
+            any_input = True
+
+        if key_down("s") or key_down(pg.K_DOWN):
             self.velocity = (self.velocity[0] ,
                                self.velocity[1]+ self.walk_acc * dt)
             self.state = 'walk'
-        elif key_down("w") or key_down(pg.K_UP):
+            any_input = True
+
+        if key_down("w") or key_down(pg.K_UP):
             self.velocity = (self.velocity[0] ,
                                self.velocity[1] - self.walk_acc * dt)
             self.state = 'walk'
-        else:
+            any_input = True
+
+        if not any_input:
             # Yes, this is supposed to be an exponent.
             self.velocity = (self.velocity[0] * (self.slow_down ** (dt)),
                                self.velocity[1]* (self.slow_down ** (dt)))
