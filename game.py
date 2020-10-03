@@ -40,6 +40,8 @@ class DinoSprite(pg.sprite.Sprite):
         self.width = 48
         self.height = 48
 
+        self.scale = 0.1
+
         self.velocity = (0, 0)
 
         # self.walk_acc = 1000.0
@@ -131,7 +133,7 @@ class DinoSprite(pg.sprite.Sprite):
             img = pg.transform.flip(self.image, True, False)
         else:
             img = self.image
-        draw_transformed(img, (self.centerx, self.centery), scale=(0.1,0.1))
+        draw_transformed(img, (self.centerx, self.centery), scale=(self.scale, self.scale))
         # draw_transformed(img, (100, 100), scale=(0.2,0.2))
 
 
@@ -276,8 +278,9 @@ def update():
             if depth > 0:
                 j +=1
                 del goals[i]
-                dino.width += 2
-                dino.height += 2
+                # dino.width += 2
+                # dino.height += 2
+                dino.scale *= 1.1
                 random_food(goals)
         draw_text(f"Level: {current_level + 1}", (0, 0))
         draw_text(f"Time left: {start_time + time_for_win - time.time():.2f}", (0, 20))
